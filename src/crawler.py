@@ -12,7 +12,7 @@ from pprint import pprint
 
 history_head = 'https://hourei.ndl.go.jp/#/detail?lawId='
 processed = [f'{history_head}{path[path.rfind("/")+1:path.rfind("json")-1]}'
-	for path in glob('./json/*')]
+	for path in glob('../json/*')]
 
 headers = {
 	'User-Agent': 'Mozilla/5.0'
@@ -28,7 +28,7 @@ def main():
 
 		data = parseHTML(urls[law])
 
-		with open(f'./json/{law_id}.json', 'w') as w:
+		with open(f'../json/{law_id}.json', 'w') as w:
 			json.dump(data, w)
 
 		time.sleep(1)
