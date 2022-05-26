@@ -8,3 +8,6 @@
 		- SPARQL Endpoint > https://history.lawlod.net/sparql/
 	2. 取得した URL から制定法律のページの HTML ファイルを取得
 	3. 取得した HTML ファイルを解析し，構造化
+
+- To do
+	- 別表の処理：現状，表は無視している．　
