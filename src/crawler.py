@@ -3,14 +3,16 @@
 import requests
 from bs4 import BeautifulSoup
 from mojimoji import zen_to_han
+from kanjize import kanji2int
+import json
+from glob import glob 
 
+import time 
 from pprint import pprint
 
-
-processed = []
-with open('./processed.txt', 'r') as r:
-	for line in r:
-		processed.append(line.strip())
+history_head = 'https://hourei.ndl.go.jp/#/detail?lawId='
+processed = [f'{history_head}{path[path.rfind("/")+1:path.rfind("json")-1]}'
+	for path in glob('./json/*')]
 
 headers = {
 	'User-Agent': 'Mozilla/5.0'
@@ -20,12 +22,16 @@ def main():
 	urls = getURLList()
 
 	for law in urls:
+		law_id = law[law.find('=')+1:]
+
+		print(urls[law], law_id)
+
 		data = parseHTML(urls[law])
 
-		print(urls[law])
-		pprint(data)
+		with open(f'./json/{law_id}.json', 'w') as w:
+			json.dump(data, w)
 
-		break
+		time.sleep(1)
 
 
 title_head = '　　◎'
@@ -41,8 +47,11 @@ def parseHTML(url):
 	out = {}
 	tmp_article_title = ''
 	art_num = 0
-	for p in soup.find(id='mainlayout').find_all('p'):
+	para_num = 1
+	for p in soup.select('#mainlayout > .hj1pj'):
 		txt = p.string
+		if txt is None:
+			continue
 
 		if txt[:len(title_head)] == title_head:
 			out['title'] = txt[len(title_head):].strip()
@@ -54,31 +63,43 @@ def parseHTML(url):
 			art_num += 1
 			paragraph_txt = txt[txt.find('条')+1:].strip()
 			out[art_num] = {
-				'head': paragraph_txt,
-				'texts': []
+				'paragraphs': {1 : [paragraph_txt]}	
 			}
 			if tmp_article_title:
 				out[art_num]['title'] = tmp_article_title
 				tmp_article_title = ''
+			para_num = 1
 
 		elif txt == '　　　附　則':
 			art_num = 9999
 			out[art_num] = {
 				'head': txt.strip(),
-				'paragraphs': {}
+				'paragraphs': {1: []}
 			}
+			para_num = 1
 
 		elif txt[0] == '　':
-			out[art_num]['texts'].append(txt.strip())
+			if art_num == 0:
+				art_num = 1
+				out[art_num] = {'paragraphs': {1: [txt.strip()]}}
+			else:
+				out[art_num]['paragraphs'][para_num].append( txt.strip() )
+
+		elif txt[0] == '（':
+			out['signature'] = txt.strip()
 
 		else:
-			para_num = zen_to_han(txt[:txt.find('　')])
+			if art_num == 0:
+				continue
+
+			tmp_para_num = zen_to_han(txt[:txt.find('　')])
+			
 			try:
-				num_int = int(para_num)
-				out[art_num]['paragraph'][num_int] = txt[txt.find('　')+1:]
+				num_int = int(tmp_para_num)
+				out[art_num]['paragraphs'][num_int] = [txt[txt.find('　')+1:]]
+				para_num = num_int
 			except:
-				print(f'|||| [s]{para_num}[e]')
-				print('||||', txt)
+				out[art_num]['paragraphs'][para_num].append(txt[txt.find('　')+1:])
 
 	return out
 
