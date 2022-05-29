@@ -6,6 +6,7 @@ from mojimoji import zen_to_han
 from kanjize import kanji2int
 import json
 from glob import glob 
+import os
 
 import time 
 from pprint import pprint
@@ -14,19 +15,24 @@ history_head = 'https://hourei.ndl.go.jp/#/detail?lawId='
 processed = [f'{history_head}{path[path.rfind("/")+1:path.rfind("json")-1]}'
 	for path in glob('../json/*')]
 
-headers = {
-	'User-Agent': 'Mozilla/5.0'
-}
-
 def main():
 	urls = getURLList()
 
 	for law in urls:
 		law_id = law[law.find('=')+1:]
 
+		html_path = f'../html/{law_id}.html'
+		if os.path.exists(html_path):
+			txt = getHTML('', html_path)
+		else:
+			txt = getHTML(laws[law], html_path)
+
 		print(urls[law], law_id)
 
-		data = parseHTML(urls[law])
+		data = parseHTML(txt)
+
+		if data == {}:
+			continue 
 
 		with open(f'../json/{law_id}.json', 'w') as w:
 			json.dump(data, w)
@@ -34,15 +40,33 @@ def main():
 		time.sleep(1)
 
 
+
+def getHTML(url, path):
+	if os.path.exists(path):
+		with open(path, 'r') as r:
+			txt = ''.join(r.readlines())
+	else:
+		if url[:5] == 'http:':
+			url = 'https:' + url[5:]
+		res = requests.get(url)
+		txt = res.text
+
+		with open(path, 'w') as w:
+			w.write(txt)
+
+	return txt
+
+
+
+
+
+
 title_head = '　　◎'
 article_title_head = '　（'
 
 
-def parseHTML(url):
-	if url[:5] == 'http:':
-		url = 'https:' + url[5:]
-	res = requests.get(url, headers=headers)
-	soup = BeautifulSoup(res.text)
+def parseHTML(txt):
+	soup = BeautifulSoup(txt)
 
 	out = {}
 	tmp_article_title = ''
@@ -132,3 +156,4 @@ def getURLList():
 
 if __name__ == "__main__":
     main()
+
