@@ -35,7 +35,7 @@ article_title_head = '　（'
 def parseHTML(txt):
 	soup = BeautifulSoup(txt)
 
-	out = {}
+	out = {'articles': {}}
 	tmp_article_title = ''
 	art_num = 0
 	para_num = 1
@@ -47,6 +47,9 @@ def parseHTML(txt):
 
 		txt = txt.replace('\n', '')
 
+		if len(txt) == 0:
+			continue
+
 		if txt.find(title_head) > -1:
 			out['title'] = txt[txt.find(title_head)+1:].strip()
 
@@ -56,17 +59,17 @@ def parseHTML(txt):
 		elif txt.find('第') == 0:
 			art_num += 1
 			paragraph_txt = txt[txt.find('条')+1:].strip()
-			out[art_num] = {
+			out['articles'][art_num] = {
 				'paragraphs': {1 : [paragraph_txt]}	
 			}
 			if tmp_article_title:
-				out[art_num]['title'] = tmp_article_title
+				out['articles'][art_num]['title'] = tmp_article_title
 				tmp_article_title = ''
 			para_num = 1
 
 		elif txt == '　　　附　則':
 			art_num = 1000
-			out[art_num] = {
+			out['articles'][art_num] = {
 				'head': txt.strip(),
 				'paragraphs': {1: []}
 			}
@@ -75,9 +78,9 @@ def parseHTML(txt):
 		elif txt[0] == '　':
 			if art_num == 0:
 				art_num = 1
-				out[art_num] = {'paragraphs': {1: [txt.strip()]}}
+				out['articles'][art_num] = {'paragraphs': {1: [txt.strip()]}}
 			else:
-				out[art_num]['paragraphs'][para_num].append( txt.strip() )
+				out['articles'][art_num]['paragraphs'][para_num].append( txt.strip() )
 
 		elif txt[0] == '（':
 			out['signature'] = txt.strip()
@@ -90,10 +93,10 @@ def parseHTML(txt):
 			
 			try:
 				num_int = int(tmp_para_num)
-				out[art_num]['paragraphs'][num_int] = [txt[txt.find('　')+1:]]
+				out['articles'][art_num]['paragraphs'][num_int] = [txt[txt.find('　')+1:]]
 				para_num = num_int
 			except:
-				out[art_num]['paragraphs'][para_num].append(txt[txt.find('　')+1:])
+				out['articles'][art_num]['paragraphs'][para_num].append(txt[txt.find('　')+1:])
 
 	return out
 
